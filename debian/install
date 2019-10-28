@@ -1,0 +1,3 @@
+.build/							usr/src/ARKitura
+terraform/scripts/install.sh	usr/src/ARKitura
+terraform/scripts/start.sh		usr/src/ARKitura
