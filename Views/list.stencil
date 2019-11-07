@@ -1,0 +1,12 @@
+{% extends "master.stencil" %}
+
+{% block title %}List{% endblock %}
+
+{% block body %}
+<h1>File List</h1>
+{% for file in files %}
+<a href="/originals/{{ file }}" target="_blank" />{{ file }}</a>
+{% empty %}
+<p>No files uploaded</p>
+{% endfor %}
+{% endblock %}
