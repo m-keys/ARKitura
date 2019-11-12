@@ -46,6 +46,10 @@ public class App {
         // Run the metrics initializer
         initializeMetrics(router: router)
     }
+    
+    func logError(line: Int = #line, function: String = #function, file: String = #file, _ message: String, error: Error) {
+        Log.error("\(line) \(function) ERROR: \(message): \(error.localizedDescription)")
+    }
 
     func postInit() throws {
         // Set Stencil as template engine
@@ -88,6 +92,50 @@ public class App {
             ) else { return }
             
             try response.render("list", context: ["files": files.map { $0.lastPathComponent }])
+        }
+        
+        router.all("/upload", middleware: BodyParser())
+        router.post("/upload") { request, response, next in
+            
+            func createThumbnail(_ url: URL) -> Data? {
+                return nil
+            }
+            
+            defer { next() } //важен чтобы следующий код с get и post в этом роуте обрабатывался
+            
+            guard let values = request.body else { return }
+            guard case .multipart(let parts) = values else { return }
+            
+            let acceptableTypes = ["images/png", "images/jpeg", "images/jpg", "model/vnd.pixar.usd", "model/usd"]
+            
+            for part in parts {
+                guard acceptableTypes.contains(part.type) else { continue }
+                
+                guard case .raw(let data) = part.body else { continue }
+                
+                let cleanesFilename = part.filename.replacingOccurrences(of: " ", with: "_")
+                
+                let newURL = self.originalsDirectory.appendingPathComponent(cleanesFilename)
+                
+                do {
+                    try data.write(to: newURL)
+                    
+                    let thumbsURL = self.thumbsDirectory.appendingPathComponent(cleanesFilename)
+                    
+                    if let image = createThumbnail(newURL) {
+                        do {
+                            try image.write(to: thumbsURL)
+                        } catch let error {
+                            self.logError("writing thumbnail file \(thumbsURL)", error: error)
+                        }
+                    }
+                } catch let error {
+                    self.logError("writing original file \(newURL)", error: error)
+                }
+            }
+            
+            try response.redirect("/public")
+            
         }
     }
 
